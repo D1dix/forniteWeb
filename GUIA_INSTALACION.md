@@ -64,6 +64,20 @@ La app es una página web gratuita alojada en GitHub Pages. No hay servidor:
 
 Si quieres hacer uno a mano, debajo sigue el modo manual. Ahí el botón **⚡ Rellenar con clips** elige los clips por ti.
 
+## Formato «Máquina / caja fuerte → sale skin» (nuevo en v1.7)
+La caja fuerte y la skin van al final, como remate:
+1. **0–3 s:** búsqueda del código en el menú, con el gancho («MIRA LO QUE SALE AL FINAL…») y luego «CÓDIGO 2678-6238-9804».
+2. **3–12 s:** gameplay del mapa con «+XP SIN PARAR» o «¡TOKEN PIRATA!».
+3. **12–14 s:** te acercas a la máquina registradora o la caja fuerte. Al final aparece un botón **X** de Xbox que late y se pulsa.
+4. **14–18 s:** destello y sale la skin, con su nombre en grande.
+5. **Final:** cierre con el código.
+
+Para que funcione, la biblioteca necesita:
+- **Clip de la máquina:** nómbralo `MAPA__caja_fuerte_01.mp4`, `MAPA__maquina_01.mp4` o `MAPA__registradora_01.mp4`, en cualquier carpeta. Graba desde que te acercas hasta que sale el botón X (unos 3 s). Si no hay ninguno, la app usa `MAPA__gameplay_01`.
+- **Clip de la skin saliendo:** en `02_SKINS/Cuando_sale`, o con `__recompensa` en el nombre, por ejemplo `RENEGADA__recompensa_01.mp4`.
+
+Lo encuentras en **Crear Short → Categoría → Máquina / caja fuerte → sale skin**. El lote automático también lo hace, siempre con una skin distinta de la de «Skin nueva».
+
 ## Notas
 - Usa **Google Chrome** en un ordenador. Los móviles no sirven para montar vídeos.
 - Normalmente el vídeo sale en `.mp4`. Si tu Chrome no puede, sale `.webm`, que YouTube también acepta.
