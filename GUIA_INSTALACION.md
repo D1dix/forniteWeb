@@ -12,7 +12,7 @@ La app es una página web gratuita alojada en GitHub Pages. No hay servidor:
    - Nombre: `premiazo-studio`.
    - Márcalo como **Public**: GitHub Pages gratis solo funciona con repositorios públicos. El código no lleva ninguna clave, así que no pasa nada.
    - Pulsa **Create repository**.
-3. En el repositorio pulsa **uploading an existing file**. Arrastra `index.html`, `styles.css`, `templates.js` y `app.js`, y pulsa **Commit changes**.
+3. En el repositorio pulsa **uploading an existing file**. Arrastra `index.html`, `styles.css`, `templates.js`, `app.js` y `mp4-muxer.js`, y pulsa **Commit changes**.
 4. Si el repositorio quedó como privado y Pages te pide "Upgrade or make this repository public":
    - Ve a **Settings → General** y baja del todo, a **Danger Zone**.
    - Pulsa **Change visibility → Change to public** y confirma.
