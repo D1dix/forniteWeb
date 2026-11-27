@@ -371,11 +371,11 @@ function plan(total, menuItem, mapItems){
   return segs;
 }
 const SR = 48000;
-async function pickEncoder(){
+async function pickEncoder(hw='no-preference'){
   if(!(window.VideoEncoder && window.AudioEncoder && window.VideoFrame && window.Mp4Muxer)) return null;
   let vcfg=null;
   for(const codec of ['avc1.640028','avc1.4d0028','avc1.42e028','avc1.640032']){
-    const c = {codec, width:W, height:H, bitrate:12e6, framerate:FPS, avc:{format:'avc'}};
+    const c = {codec, width:W, height:H, bitrate:12e6, framerate:FPS, avc:{format:'avc'}, hardwareAcceleration:hw};
     try{ if((await VideoEncoder.isConfigSupported(c)).supported){ vcfg=c; break; } }catch(e){}
   }
   if(!vcfg) return null;
@@ -385,7 +385,24 @@ async function pickEncoder(){
   }
   return null;
 }
+// Prueba los modos de grabación en orden y recuerda el que funciona en este ordenador
+const REC_MODES = ['wc', 'wc-sw', 'mr'];
 async function render(){
+  let modes = REC_MODES.slice(); const saved = load('recMode', null);
+  if(saved && modes.includes(saved)) modes = [saved, ...modes.filter(m=>m!==saved)];
+  let lastErr = null;
+  for(const m of modes){
+    try{
+      const blob = await renderOnce(m);
+      if(blob && blob.size > 100000){ save('recMode', m); return blob; }
+      lastErr = new Error('el vídeo salió vacío ('+(blob?blob.size:0)+' bytes) en modo '+m);
+    }catch(e){ lastErr = e; }
+    toast('La grabación falló ('+lastErr.message+'). Reintento con otro modo…', 5000);
+    st.outName=''; st.out=null;
+  }
+  throw new Error('No se pudo grabar el vídeo: '+(lastErr?lastErr.message:'error desconocido'));
+}
+async function renderOnce(mode){
   if(!st.basket.length) throw new Error('Añade al menos un clip al Short (pestaña Biblioteca).');
   if(!$('voiceText').value.trim()) makeScript(false);
   await document.fonts.load('96px "Luckiest Guy"');
@@ -421,11 +438,13 @@ async function render(){
     if(musicBuf){ const s=ac.createBufferSource(); s.buffer=musicBuf; const g=ac.createGain(); g.gain.value = voiceBuf?0.16:0.45; if(voiceBuf){ g.gain.setValueAtTime(0.16,t0); g.gain.setValueAtTime(0.16,t0+total-2.3); g.gain.linearRampToValueAtTime(0.4,t0+total-2.0);} s.connect(g); g.connect(master); s.start(t0, 0, total); }
     let tt=0; segs.forEach((s,i)=>{ if(i>0 && sfxBuf && !s.menu){ const x=ac.createBufferSource(); x.buffer=sfxBuf; const g=ac.createGain(); g.gain.value=0.45; x.connect(g); g.connect(master); x.start(Math.max(0, t0+tt-0.15)); } tt+=s.dur; });
   }
-  const enc = await pickEncoder();
+  const enc = mode==='mr' ? null : await pickEncoder(mode==='wc-sw' ? 'prefer-software' : 'no-preference');
+  if(mode!=='mr' && !enc) throw new Error('este navegador no tiene el codificador '+mode);
+  let vCount=0, aCount=0;
   let rec=null, chunks=[], done=null, mime='', muxer=null, venc=null, encErr=null, mixPromise=null, t0, now;
   if(enc){
     muxer = new Mp4Muxer.Muxer({ target:new Mp4Muxer.ArrayBufferTarget(), video:{codec:'avc', width:W, height:H, frameRate:FPS}, audio:{codec:enc.aMux, numberOfChannels:2, sampleRate:SR}, fastStart:'in-memory', firstTimestampBehavior:'offset' });
-    venc = new VideoEncoder({ output:(c,m)=>muxer.addVideoChunk(c,m), error:e=>encErr=e });
+    venc = new VideoEncoder({ output:(c,m)=>{ vCount++; muxer.addVideoChunk(c,m); }, error:e=>encErr=e });
     venc.configure(enc.vcfg);
     mixPromise = (async()=>{ const oc = new OfflineAudioContext(2, Math.ceil(SR*total), SR); scheduleAudio(oc, oc.destination, 0); return await oc.startRendering(); })();
     const p0 = performance.now()+50; t0 = 0; now = () => (performance.now()-p0)/1000;
@@ -480,13 +499,14 @@ async function render(){
   if(enc){
     prog.textContent = 'Guardando el MP4…';
     const ab = await mixPromise;
-    const aenc = new AudioEncoder({ output:(c,m)=>muxer.addAudioChunk(c,m), error:e=>encErr=e });
+    const aenc = new AudioEncoder({ output:(c,m)=>{ aCount++; muxer.addAudioChunk(c,m); }, error:e=>encErr=e });
     aenc.configure(enc.acfg);
     const L0 = ab.getChannelData(0), L1 = ab.numberOfChannels>1 ? ab.getChannelData(1) : L0, step = 4800;
     for(let off=0; off<ab.length; off+=step){ const n = Math.min(step, ab.length-off); const d = new Float32Array(n*2); d.set(L0.subarray(off,off+n),0); d.set(L1.subarray(off,off+n),n);
       const ad = new AudioData({format:'f32-planar', sampleRate:SR, numberOfFrames:n, numberOfChannels:2, timestamp:Math.round(off/SR*1e6), data:d}); aenc.encode(ad); ad.close(); }
     await venc.flush(); await aenc.flush(); venc.close(); aenc.close();
     if(encErr) throw new Error('Error al codificar el vídeo: '+encErr.message);
+    if(!vCount) throw new Error('el codificador no devolvió imágenes ('+nFrames+' enviadas)');
     muxer.finalize();
     blob = new Blob([muxer.target.buffer], {type:'video/mp4'});
   } else {
@@ -494,12 +514,13 @@ async function render(){
     blob = new Blob(chunks, {type: mime.split(';')[0] || 'video/webm'});
   }
   ctx.close();
+  if(blob.size < 100000) return blob;
   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
   const name = today()+'_'+String(hist.filter(h=>h.date===today()).length+1).padStart(2,'0')+'_'+$('cat').value+'_'+(($('skin').value||({FREE_TOKEN:'TOKEN',SKIN_BUNDLE:'PACK',TOP_COMPARISON:'TOP'})[$('cat').value]||'MAPA').replace(/\W+/g,'_'))+'_'+$('lang').value.toUpperCase()+'.'+ext;
   st.out = blob; st.outName = name;
-  $('outVideo').src = URL.createObjectURL(blob); $('outVideo').hidden=false; $('outActions').hidden=false;
+  $('outVideo').src = URL.createObjectURL(blob); $('outVideo').hidden=false; $('outActions').hidden=false; $('outVideo').scrollIntoView({behavior:'smooth', block:'center'});
   hist.push({date:today(), cat:$('cat').value, skin:$('skin').value, lang:$('lang').value, clips:st.basket.map(b=>b.item.name), dur:total}); save('hist', hist.slice(-500)); checkCat();
-  prog.textContent = 'Listo: '+name+' ('+(blob.size/1048576).toFixed(1)+' MB · '+(enc?'H.264+'+enc.aMux.toUpperCase():'modo compatible')+(ext==='webm'?' · WebM: YouTube lo acepta':'')+')';
+  prog.textContent = 'Listo: '+name+' ('+(blob.size/1048576).toFixed(1)+' MB · '+(enc?'H.264+'+enc.aMux.toUpperCase()+(mode==='wc-sw'?' (software)':''):'modo compatible')+(ext==='webm'?' · WebM: YouTube lo acepta':'')+')';
   return blob;
 }
 $('btnRender').onclick = async () => { const b=$('btnRender'); b.disabled=true; try{ await render(); }catch(e){ $('renderProg').textContent=e.message; toast(e.message, 6000); } b.disabled=false; };
@@ -621,6 +642,7 @@ $('btnLote').onclick = async () => {
           await dUpload(blob, name, '08_SHORTS_LISTOS'); await dUpload(cover, baseName+'_PORTADA.jpg', '08_SHORTS_LISTOS'); await dUpload(new Blob([texts],{type:'text/plain'}), baseName+'_TEXTOS.txt', '08_SHORTS_LISTOS'); }
         li.textContent = (k+1)+'/'+jobs.length+' ✓ '+name; li.className='ok';
         [[blob,name,'vídeo'],[cover,baseName+'_PORTADA.jpg','portada'],[new Blob([texts],{type:'text/plain'}),baseName+'_TEXTOS.txt','textos']].forEach(([bl,nm,lab])=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=nm; a.textContent=lab; li.appendChild(a); });
+        const pv = document.createElement('video'); pv.src = URL.createObjectURL(blob); pv.controls = true; pv.className='lotevid'; li.appendChild(pv);
         done.push(name);
       }catch(e){ li.textContent = (k+1)+'/'+jobs.length+' ✗ '+CATS[j.cat].label+': '+e.message; li.className='bad'; }
     }

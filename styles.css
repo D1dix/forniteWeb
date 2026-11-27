@@ -59,3 +59,4 @@ button:disabled{opacity:.5;cursor:wait}
 .lotelog{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .lotelog li.ok{color:#7dffa8}.lotelog li.bad{color:#ff8a8a}
 .lotelog a{color:var(--acc2);margin-left:8px}
+.lotevid{display:block;width:200px;max-width:45vw;aspect-ratio:9/16;background:#000;border-radius:10px;margin-top:6px}
