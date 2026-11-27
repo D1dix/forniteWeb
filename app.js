@@ -18,7 +18,8 @@ const cache = new Map(); // id -> {blob,url}
 function load(k, d){ try{ const v = localStorage.getItem(LS+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
 function save(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
 function toast(msg, ms=3500){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true, ms); }
-function setStatus(){ const p=[]; p.push(S.el ? 'ElevenLabs ✓' : 'ElevenLabs ✗'); p.push(st.token ? 'Drive ✓' : 'Drive ✗'); $('status').textContent = p.join(' · '); }
+const APP_VERSION='1.4';
+function setStatus(){ const p=['v'+APP_VERSION]; p.push(S.el ? 'ElevenLabs ✓' : 'ElevenLabs ✗'); p.push(st.token ? 'Drive ✓' : 'Drive ✗'); $('status').textContent = p.join(' · '); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function facts(){ try{ return JSON.parse(S.facts); }catch(e){ return window.PZ_DEFAULT_FACTS; } }
@@ -524,7 +525,7 @@ async function renderOnce(mode){
   return blob;
 }
 $('btnRender').onclick = async () => { const b=$('btnRender'); b.disabled=true; try{ await render(); }catch(e){ $('renderProg').textContent=e.message; toast(e.message, 6000); } b.disabled=false; };
-function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 2000); }
+function download(blob, name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 120000); }
 $('btnDl').onclick = () => st.out && download(st.out, st.outName);
 $('btnDriveSave').onclick = async () => { if(!st.out) return; try{ toast('Subiendo a Drive…'); await dUpload(st.out, st.outName, '08_SHORTS_LISTOS'); toast('Guardado en 08_SHORTS_LISTOS ✓'); }catch(e){ toast(e.message, 6000); } };
 
@@ -616,7 +617,7 @@ function loteLog(msg, cls){ const li=document.createElement('li'); li.textConten
 $('btnLote').onclick = async () => {
   const b=$('btnLote'); b.disabled=true; $('loteLog').innerHTML='';
   try{
-    if(!st.lib.length){ loteLog('Leyendo tu biblioteca de Drive…'); await new Promise(async (res,rej)=>{ try{ const root = await dFindFolder(S.root); if(!root) throw new Error('No encuentro la carpeta "'+S.root+'" en tu Drive.'); st.lib = st.lib.filter(x=>x.src==='local'); st.folderIds={'':root}; await dWalk(root,''); renderLib(); res(); }catch(e){ rej(e); } }); }
+    if(!st.lib.length || st.lib.some(x=>x.src==='drive')){ loteLog('Leyendo tu biblioteca de Drive (con lo último que hayas subido)…'); await new Promise(async (res,rej)=>{ try{ const root = await dFindFolder(S.root); if(!root) throw new Error('No encuentro la carpeta "'+S.root+'" en tu Drive.'); st.lib = st.lib.filter(x=>x.src==='local'); st.folderIds={'':root}; await dWalk(root,''); renderLib(); res(); }catch(e){ rej(e); } }); }
     const prio = await skinPriority();
     const main = ($('loteSkin').value||'').trim().toUpperCase().replace(/\s+/g,'_') || prio[0];
     const jobs = planLote(+$('loteN').value, prio, main);
