@@ -1,0 +1,55 @@
+/* VOICE: energetic studio tool for a Fortnite Shorts channel
+   IDEA: an editing desk lit like a game lobby
+   PICTURE: the live 9:16 canvas is the hero
+   COLOUR+TYPE: deep night blue, Fortnite yellow accent, Luckiest Guy titles, Inter UI
+   LAYOUT: two columns of step cards; stacks below 900px */
+:root{--bg:#0d1022;--panel:#161a36;--line:#2a3060;--ink:#eef1ff;--mute:#9aa3d6;--acc:#ffd400;--acc2:#29d3ff;--bad:#ff4d6d;--ok:#3ddc84}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
+.top{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:12px max(3vw,14px);background:#0a0c1bcc;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font:28px 'Luckiest Guy',cursive;color:var(--acc);letter-spacing:.5px}.brand span{color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{background:transparent;border:1px solid var(--line);color:var(--mute)}
+.tabs button.on{background:var(--acc);color:#111;border-color:var(--acc)}
+.status{margin-left:auto;font-size:13px;color:var(--mute)}
+main{padding:18px max(3vw,14px) 60px;max-width:1400px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media(max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+h2{font:22px 'Luckiest Guy',cursive;letter-spacing:.4px;margin:0 0 10px;color:var(--ink)}h2 small{font:13px Inter;color:var(--mute)}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);margin:6px 0;flex:1}
+label.chk{flex-direction:row;align-items:center;gap:6px;flex:none;color:var(--ink)}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:#0d1130;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea{resize:vertical}.mono{font:13px ui-monospace,monospace}
+input:focus,select:focus,textarea:focus,button:focus{outline:2px solid var(--acc2);outline-offset:1px}
+button,.filebtn{font:600 15px Inter;min-height:44px;padding:10px 16px;border-radius:10px;border:0;background:var(--acc);color:#111;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+button.ghost,.filebtn{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.big{font-size:17px;padding:12px 22px}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:6px 0}
+.hint{font-size:13px;color:var(--mute);margin:6px 0}
+.hint.bad{color:var(--bad)}.hint.ok{color:var(--ok)}
+.stage{background:#000;border-radius:12px;overflow:hidden;margin-top:10px;max-width:360px;aspect-ratio:9/16}
+.stage.small{max-width:270px}
+.stage canvas{width:100%;height:100%;display:block}
+#outVideo{width:100%;max-width:360px;border-radius:12px;margin-top:10px}
+.basket{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.basket li{display:flex;gap:8px;align-items:center;background:#0d1130;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.basket li .nm{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.basket li input{width:70px;min-height:36px;padding:4px 6px;font-size:14px}
+.basket li button{min-height:36px;padding:4px 10px;font-size:13px}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:14px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.item .nm{font-size:13px;font-weight:600;word-break:break-word}
+.item .fd{font-size:12px;color:var(--mute)}
+.item .acts{display:flex;gap:6px}.item .acts button{min-height:36px;padding:4px 10px;font-size:13px;flex:1}
+.preview{position:fixed;right:16px;bottom:16px;width:min(360px,90vw);z-index:6}
+.preview video{width:100%;border-radius:10px;max-height:50vh;background:#000}
+.pubblock{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.pubblock h3{font:18px 'Luckiest Guy',cursive;margin:0 0 6px;color:var(--acc)}
+.copyrow{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+.copyrow textarea,.copyrow input{flex:1}
+.copyrow button{min-height:40px;padding:6px 12px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;border:1px solid var(--line);padding:10px 16px;border-radius:10px;z-index:9;max-width:90vw}
