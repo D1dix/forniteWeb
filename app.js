@@ -18,7 +18,7 @@ const cache = new Map(); // id -> {blob,url}
 function load(k, d){ try{ const v = localStorage.getItem(LS+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
 function save(k, v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
 function toast(msg, ms=3500){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true, ms); }
-const APP_VERSION='1.7';
+const APP_VERSION='1.8';
 function setStatus(){ const p=['v'+APP_VERSION]; p.push(S.el ? 'ElevenLabs ✓' : 'ElevenLabs ✗'); p.push(st.token ? 'Drive ✓' : 'Drive ✗'); $('status').textContent = p.join(' · '); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function today(){ return new Date().toISOString().slice(0,10); }
@@ -193,6 +193,14 @@ $('libGrid').addEventListener('click', async e => {
   if(b.dataset.a){ addToBasket(it); return; }
   b.disabled = true; try{ const c = await dBlob(it); previewItem = it; $('previewVideo').src = c.url; $('previewName').textContent = it.name; $('previewBox').hidden=false; $('previewVideo').play().catch(()=>{}); }catch(err){ toast(err.message); } b.disabled=false;
 });
+$('btnMarkMachine').onclick = () => {
+  if(!previewItem) return toast('Abre primero un clip con «Ver».');
+  const at = $('previewVideo').currentTime;
+  machineMarks.push({id:previewItem.id, name:previewItem.name, t:Math.max(0, +(at-2).toFixed(2))});
+  save('machineMarks', machineMarks); showMarks();
+  toast('📍 Marcado '+previewItem.name+' a los '+at.toFixed(1)+' s. Ya lo usa el formato «Máquina → sale skin».', 5000);
+};
+$('btnUndoMark').onclick = () => { if(machineMarks.pop()){ save('machineMarks', machineMarks); showMarks(); toast('Última marca borrada.'); } };
 $('btnAddPreview').onclick = () => { if(previewItem) addToBasket(previewItem, +$('previewVideo').currentTime.toFixed(1)); };
 function addToBasket(it, start=0){ st.basket.push({item:it, start, dur:0, frame:'auto'}); renderBasket(); toast('Añadido: '+it.name); if(!$('skin').value) $('skin').value = skinOf(it.name); }
 function renderBasket(){
@@ -220,6 +228,15 @@ function skinClips(skin, nIntro=2, nGame=2, nReveal=1){
   const reveal = pick(/__(taquilla|juntos|recompensa|mision|final)/i, nReveal, [...intro, ...game]);
   return {intro, game, reveal};
 }
+// Momentos de caja fuerte / máquina marcados a mano en clips largos de gameplay (se guardan en este navegador)
+const machineMarks = load('machineMarks', []);
+const machineSources = () => {
+  const files = vids().filter(x=>/^MAPA__(maquina|caja|registradora|boton)/i.test(x.name)).map(it=>({item:it, start:0.3}));
+  const marked = machineMarks.map(m=>({item: st.lib.find(x=>x.id===m.id) || st.lib.find(x=>x.name===m.name), start:m.t})).filter(m=>m.item);
+  return [...files, ...marked];
+};
+const hasMachineClip = () => machineSources().length > 0;
+function showMarks(){ const n = machineMarks.length; $('markInfo').textContent = n ? n+' momento'+(n>1?'s':'')+' de caja fuerte marcado'+(n>1?'s':'')+': '+machineMarks.slice(-3).map(m=>m.name.replace(/\.\w+$/,'')+' @'+(m.t+2).toFixed(1)+'s').join(' · ') : 'Pon el vídeo justo cuando sale la X y pulsa 📍. La app usará los 2 s de antes (cuando te acercas).'; }
 const skinsWith = re => [...new Set(vids().filter(x=>re.test(x.folder+'/'+x.name)).map(x=>skinOf(x.name)))];
 // Clips para cada tipo de Short (devuelve la lista de clips y la skin usada)
 function clipsFor(cat, skin){
@@ -244,9 +261,8 @@ function clipsFor(cat, skin){
   }
   if(cat==='MACHINE_SKIN'){
     // 1) acercarse a la máquina / caja fuerte con el botón X  2) sale la skin  (luego el montaje añade menú+código y gameplay del mapa)
-    const machs = vids().filter(x=>/^MAPA__(maquina|caja|registradora|boton)/i.test(x.name));
-    let mach = shuffle(machs)[0], machStart = 0.3;
-    if(!mach){ mach = vids().find(x=>/^MAPA__gameplay_01/.test(x.name)) || shuffle(vids().filter(x=>/^MAPA__gameplay/.test(x.name)))[0]; machStart = 3.5; }
+    const src = shuffle(machineSources())[0]; // sin clip ni marca de la caja fuerte NO se inventa: el formato se salta
+    const mach = src && src.item, machStart = src ? src.start : 0;
     const mine = vids().filter(x => !/^(REACCION|EJEMPLO|REF|MAPA)__/.test(x.name) && skinOf(x.name)===skin);
     const sale = shuffle(mine.filter(x=>/Cuando_sale/i.test(x.folder) || /__(recompensa|sale|desbloque|restaurad|taquilla)/i.test(x.name)));
     const otras = shuffle(mine.filter(x=>!sale.includes(x) && /__(estilo|pose|girando|cuerpo|gameplay)/i.test(x.name)));
@@ -280,6 +296,7 @@ $('btnAutoClips').onclick = () => {
   const skin = ($('skin').value||'').trim().toUpperCase().replace(/\s+/g,'_');
   if(!st.lib.length) return toast('Carga primero la Biblioteca.');
   const r = clipsFor($('cat').value, skin);
+  if(!r.clips.length && $('cat').value==='MACHINE_SKIN' && !hasMachineClip()) return toast('Falta la caja fuerte: en Biblioteca abre un gameplay con «Ver», ponlo cuando sale la X y pulsa 📍.', 7000);
   if(!r.clips.length) return toast('No encuentro clips para esto en la biblioteca.');
   st.basket = r.clips; st.reward = r.reward || null; if(r.skin && r.skin!=='TOKEN') $('skin').value = r.skin; renderBasket(); makeScript(false);
   toast(r.clips.length+' clips añadidos.');
@@ -689,6 +706,7 @@ $('btnLote').onclick = async () => {
     const main = ($('loteSkin').value||'').trim().toUpperCase().replace(/\s+/g,'_') || prio[0];
     const jobs = planLote(+$('loteN').value, prio, main);
     if(!jobs.length) throw new Error('Hoy ya están hechos todos los formatos posibles en este idioma.');
+    if(!hasMachineClip()) loteLog('Sin caja fuerte marcada: me salto «Máquina → sale skin». Márcala en Biblioteca con 📍.', 'bad');
     loteLog('Plan: '+jobs.map(j=>CATS[j.cat].label+(j.skin?' ('+j.skin+')':'')).join(' · '));
     if(!S.el) loteLog('Sin clave de ElevenLabs: los Shorts saldrán sin voz.', 'bad');
     const done = [];
@@ -719,6 +737,6 @@ $('btnLote').onclick = async () => {
   b.disabled=false;
 };
 
-renderBasket(); setStatus();
+renderBasket(); setStatus(); showMarks();
 window.PZ_DEBUG = { st, S, render, plan, planMachine, addToBasket, renderLib, planLote, skinPriority };
 })();

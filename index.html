@@ -6,7 +6,7 @@
 <title>PREMIAZO Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -116,6 +116,8 @@
   <div class="preview card" id="previewBox" hidden>
     <video id="previewVideo" controls muted playsinline></video>
     <div class="row"><b id="previewName"></b><button id="btnAddPreview">＋ Añadir al Short</button></div>
+    <div class="row"><button id="btnMarkMachine" class="ghost">📍 Aquí sale la X (caja fuerte / máquina)</button><button id="btnUndoMark" class="ghost">↶ Deshacer</button></div>
+    <p class="hint" id="markInfo"></p>
   </div>
 </section>
 
@@ -190,8 +192,8 @@
 </section>
 </main>
 <div id="toast" class="toast" hidden></div>
-<script src="templates.js?v=17"></script>
-<script src="mp4-muxer.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="templates.js?v=18"></script>
+<script src="mp4-muxer.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
